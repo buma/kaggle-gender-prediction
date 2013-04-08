@@ -12,13 +12,13 @@ from os.path import join as path_join
 dio = DataIO("Settings_submission.json")
 dio1 = DataIO("Settings.json")
 
-input_file = dio.train_file
-output_file1 = dio1.train_file
-output_file2 = dio1.valid_file
+#input_file = dio.train_file
+#output_file1 = dio1.train_file
+#output_file2 = dio1.valid_file
 
-print "Input: %s " % input_file
-print "Train file: %s " % output_file1
-print "Validation file: %s " % output_file2
+#print "Input: %s " % input_file
+#print "Train file: %s " % output_file1
+#print "Validation file: %s " % output_file2
 
 store = pd.HDFStore(
     path_join(dio.data_dir, "data", "processed", "train_w_answers.h5")
@@ -43,9 +43,17 @@ print run
 if run != "Y":
     os.exit()
 
-store["train_train"] = train[train['writer'].isin(train_writers)].copy()
+del store["train_train"]
 
-store["train_test"] = train[train['writer'].isin(valid_writers)].copy()
+del store["train_test"]
+
+train_train = train[train['writer'].isin(train_writers)].copy()
+train_train.index = range(len(train_train.index))
+store["train_train"] = train_train
+
+train_test = train[train['writer'].isin(valid_writers)].copy()
+train_test.index = range(len(train_test.index))
+store["train_test"] = train_test
 
 print store
 

@@ -1,11 +1,7 @@
 {
 	"data_path": "/home/mabu/kaggle/gender-prediction",
-	"train_data_path": "data/raw/train.csv",
-	"valid_data_path": "data/raw/test.csv",
-	"test_data_path": "data/raw/test.csv",
-	"train_and_valid": "data/processed/Train_and_valid.csv",
-	"train_and_test": "data/processed/Train_and_Test.csv",
-	"valid_data_path": "data/raw/Valid_rev1.csv",
+	"_train_data_path": "data/raw/train.csv",
+	"train_data_path": "data/processed/train_w_answers.h5",
 	"submission_path": "submissions",
 	"prediction_dir" : "predictions",
 	"models_dir" : "models",

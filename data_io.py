@@ -41,8 +41,8 @@ class DataIO(object):
         self.models_dir = paths["models_dir"]
         self.submission_path = paths["submission_path"]
         self.train_file = paths["train_data_path"]
-        self.valid_file = paths["valid_data_path"]
-        self.test_file = paths["test_data_path"]
+        #self.valid_file = paths["valid_data_path"]
+        #self.test_file = paths["test_data_path"]
         return paths
 
     def _check_type_n(self, type_n):
