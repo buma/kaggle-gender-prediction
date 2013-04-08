@@ -7,6 +7,7 @@ from sklearn.naive_bayes import GaussianNB, MultinomialNB
 import joblib
 from os.path import join as path_join
 import numpy as np
+from itertools import islice
 
 
 dio = DataIO("Settings_submission.json")
@@ -17,7 +18,10 @@ print store
 
 training_data = store["train_train"]
 writer = training_data.writer
-all_columns = training_data.columns
+#removes constant columns
+non_constant_cols = (training_data.std() > 1e-9)
+all_columns = non_constant_cols.index[non_constant_cols.values]
+#all_columns = training_data.columns
 
 
 def get_columns_with_prefix(prefix):
@@ -52,6 +56,7 @@ f25 = get_columns_with_prefix('directions_hist1a2a3a4a5a6a7a8a9_180')
 f26 = get_columns_with_prefix('directions_hist1a2a3a4a5a6a7a8a9a10_220')
 
 #sums how many columns are chosen with these features
+print map(lambda i: len(eval('f%d' % i)), range(1, 27))
 print sum(map(lambda i: len(eval('f%d' % i)), range(1, 27)))
 
 #prints unused columns
@@ -127,21 +132,23 @@ factory = rp.ConfigFactory(
         #sklearn.ensemble.RandomForestClassifier(n_jobs=4,n_estimators=40,random_state=42),
         #sklearn.ensemble.ExtraTreesClassifier(n_jobs=4,n_estimators=40,random_state=42),
         BinaryProbabilities(
-            sklearn.linear_model.LogisticRegression(random_state=42)),
-        BinaryProbabilities(
             sklearn.ensemble.RandomForestClassifier(random_state=42, n_jobs=4)),
-        BinaryProbabilities(
-            sklearn.ensemble.RandomForestClassifier(random_state=42, n_jobs=4, n_estimators=20)),
+        #BinaryProbabilities(
+            #sklearn.ensemble.RandomForestClassifier(random_state=42, n_jobs=4, n_estimators=20)),
         BinaryProbabilities(
             sklearn.ensemble.AdaBoostClassifier()),
+        #BinaryProbabilities(
+            #sklearn.ensemble.AdaBoostClassifier(n_estimators=100)),
         BinaryProbabilities(
-            sklearn.ensemble.AdaBoostClassifier(n_estimators=100)),
+            sklearn.naive_bayes.GaussianNB()),
         BinaryProbabilities(
-            sklearn.naive_bayes.GaussianNB())
+            sklearn.linear_model.LogisticRegression(random_state=42)),
     ]
 )
 
-my_cv = sklearn.cross_validation.LeaveOneLabelOut(writer)
+#my_cv = sklearn.cross_validation.LeaveOneLabelOut(writer)
+#my_cv = islice(sklearn.cross_validation.LeavePLabelOut(writer, p=45), 5)  # 5 splits
+my_cv = list(islice(sklearn.cross_validation.LeavePLabelOut(writer, p=75), 3))  # 3 splits
 
 all_scores = []
 for config in factory:
@@ -149,6 +156,7 @@ for config in factory:
     scores = rp.models.cv(config, context, folds=my_cv, repeat=2,
                  print_results=True)
     all_scores.append((config, scores))
+    joblib.dump(all_scores, path_join(dio.cache_dir, "all_scores"))
 
 joblib.dump(all_scores, path_join(dio.cache_dir, "all_scores"))
 
