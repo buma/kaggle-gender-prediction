@@ -23,6 +23,10 @@ non_constant_cols = (training_data.std() > 1e-9)
 all_columns = non_constant_cols.index[non_constant_cols.values]
 #all_columns = training_data.columns
 
+learn = True
+
+
+
 
 def get_columns_with_prefix(prefix):
     """Returns only column names that starts with prefix"""
@@ -96,18 +100,30 @@ base_features = [
 f6_features = [rp.FillMissing(f, 0) for f in f6]
 f7_features = [rp.FillMissing(f, 0) for f in f7]
 f26_features = [rp.FillMissing(f, 0) for f in f26]
+all_f = [rp.FillMissing(f, 0) for f in all_columns[3:-1]]
+
+f6_f7 = list(f6_features)
+f6_features.extend(f7_features)
+f6_f7_f26 = list(f6_f7)
+f6_f7_f26.extend(f26_features)
 
 factory = rp.ConfigFactory(
     base_config,
     features=[
-        ('BASE: writer, F_language, F_same text', base_features),
-        ('BASE + f6', f6_features),
-        ('BASE + f7', f7_features),
-        ('BASE + f26', f26_features),
-        #('BASE + f6 + f7', f6.extend(f7)),
-        ('BASE + f6 norm', [rp.Normalize(f) for f in f6_features]),
-        ('BASE + f7 norm', [rp.Normalize(f) for f in f7_features]),
-        ('BASE + f26 norm', [rp.Normalize(f) for f in f26_features]),
+        #('BASE: writer, F_language, F_same text', base_features),
+        #('BASE + f6', f6_features),
+        #('BASE + f7', f7_features),
+        #('BASE + f26', f26_features),
+        ('BASE + f6 + f7', f6_f7),
+        ('BASE + f6 + f7 + f26', f6_f7_f26),
+        ('BASE + all not only f', all_f),
+        #('BASE + f6 norm', [rp.Normalize(f) for f in f6_features]),
+        #('BASE + f7 norm', [rp.Normalize(f) for f in f7_features]),
+        #('BASE + f26 norm', [rp.Normalize(f) for f in f26_features]),
+        ('BASE + f6 + f7 norm', [rp.Normalize(f) for f in f6_f7]),
+        ('BASE + f6 + f7 + f26 norm', [rp.Normalize(f) for f in f6_f7_f26]),
+        ('BASE + all not only f norm', [rp.Normalize(f) for f in all_f]),
+
         #('all except subject top 100 with RF', [rp.trained.FeatureSelector(
             #base_features,
          ##use random forest to trim features
@@ -124,51 +140,27 @@ factory = rp.ConfigFactory(
         #)]),
     ],
     model=[
-        #sklearn.linear_model.RidgeClassifier(),
-        #sklearn.ensemble.RandomForestClassifier(n_jobs=4,n_estimators=20,random_state=42),
-        #sklearn.ensemble.ExtraTreesClassifier(n_jobs=4,n_estimators=20,random_state=42),
-        #sklearn.ensemble.RandomForestClassifier(n_jobs=4,n_estimators=30,random_state=42),
-        #sklearn.ensemble.ExtraTreesClassifier(n_jobs=4,n_estimators=30,random_state=42),
-        #sklearn.ensemble.RandomForestClassifier(n_jobs=4,n_estimators=40,random_state=42),
-        #sklearn.ensemble.ExtraTreesClassifier(n_jobs=4,n_estimators=40,random_state=42),
-        BinaryProbabilities(
-            sklearn.ensemble.RandomForestClassifier(random_state=42, n_jobs=4)),
-        #BinaryProbabilities(
-            #sklearn.ensemble.RandomForestClassifier(random_state=42, n_jobs=4, n_estimators=20)),
-        BinaryProbabilities(
-            sklearn.ensemble.AdaBoostClassifier()),
-        #BinaryProbabilities(
-            #sklearn.ensemble.AdaBoostClassifier(n_estimators=100)),
-        BinaryProbabilities(
-            sklearn.naive_bayes.GaussianNB()),
         BinaryProbabilities(
             sklearn.linear_model.LogisticRegression(random_state=42)),
+        BinaryProbabilities(
+            sklearn.linear_model.LogisticRegression(random_state=42, penalty='l1')),
+        BinaryProbabilities(
+            sklearn.linear_model.SGDClassifier(random_state=42, loss='log')),
+        BinaryProbabilities(
+            sklearn.linear_model.SGDClassifier(random_state=42, loss='modified_huber')),
+        BinaryProbabilities(
+            sklearn.ensemble.RandomForestClassifier(random_state=42, n_jobs=4, n_estimators=20)),
+        BinaryProbabilities(
+            sklearn.ensemble.ExtraTreesClassifier(random_state=42, n_jobs=4, n_estimators=20)),
+        BinaryProbabilities(
+            sklearn.ensemble.AdaBoostClassifier()),
+        BinaryProbabilities(
+            sklearn.ensemble.AdaBoostClassifier(n_estimators=100)),
     ]
 )
 
-#my_cv = sklearn.cross_validation.LeaveOneLabelOut(writer)
-#my_cv = islice(sklearn.cross_validation.LeavePLabelOut(writer, p=45), 5)  # 5 splits
-my_cv = list(islice(sklearn.cross_validation.LeavePLabelOut(writer, p=75), 3))  # 3 splits
-
-all_scores = []
-for config in factory:
-    #print str(config)
-    scores = rp.models.cv(config, context, folds=my_cv, repeat=2,
-                 print_results=True)
-    all_scores.append((config, scores))
-    joblib.dump(all_scores, path_join(dio.cache_dir, "all_scores"))
-
-joblib.dump(all_scores, path_join(dio.cache_dir, "all_scores"))
-
-a=5/0
-configs = list(factory)
-
-print str(configs[19])
-config_log = configs[19]
-
-
-def predict(config, context, filepath):
-    test = pd.read_csv(filepath)
+def predict(config, context):
+    test = store["train_test"]
     ctx = context.copy()
     train_idx = ctx.data.index
     ctx.data = ctx.data.append(test, ignore_index=True)
@@ -183,25 +175,52 @@ def predict(config, context, filepath):
             )
     actuals = predict_y.reindex(test_idx)
     scores = []
-    #print actuals
-    #print preds
-    for metric in config.metrics:
-        scores.append(
-                metric.score(actuals, preds))
-    scores = np.array(scores)
-    print "%0.4f (+/- %0.4f) [%0.4f,%0.4f]\n" % (
-        scores.mean(), scores.std(), min(scores),
-        max(scores))
-    n_preds = map(predict_y.get_name, preds)
+    print actuals[:10]
+    print preds[:10]
+    score = metric.score(actuals, preds)
+    print "%0.4f" % score
 
-    return scores, preds, n_preds
+    return preds, train.writer
 
-scores, preds, n_preds = predict(config_log, context, dio.valid_file)
+if learn:
+#my_cv = sklearn.cross_validation.LeaveOneLabelOut(writer)
+    #my_cv = list(islice(sklearn.cross_validation.LeavePLabelOut(writer, p=45), 5))  # 5 splits
+    my_cv = list(islice(sklearn.cross_validation.LeavePLabelOut(writer, p=75), 3))  # 3 splits
 
-print preds
+    all_scores = []
+#myStore = rp.store.PickleStore(path=dio.cache_dir)
+    for config in factory:
+        #print
+        #print "S", str(config)
+        #ctx = context.copy()
+        #for train, test in my_cv:
+            #ctx.train_index = train
+            #key = rp.models.get_key(config, ctx)
+            #safe_name = myStore.safe_name(key)
+            #print "\tKE:", ctx.create_key()
+            #print key
+            #print "\tSN:",safe_name
+            #ven = myStore.load(key)
+            #print "\t",str(ven)
+        scores = rp.models.cv(config, context, folds=my_cv, repeat=2,
+                    print_results=True)
+        all_scores.append((config, scores))
+        joblib.dump(all_scores, path_join(dio.cache_dir, "all_scores_all"))
+        #break
 
+    joblib.dump(all_scores, path_join(dio.cache_dir, "all_scores_all"))
+else:
+    configs = joblib.load(path_join(dio.cache_dir, "all_scores_all_vse"))
+    #config_id = 84
+    config_id = 90
+    config_log = configs[config_id][0]
 
-print n_preds
+    print str(config_log)
+
+    preds, writers = predict(config_log, context)
+
+    print preds
+
 
 
 ##map(lambda conf, scores: print "\n", str(conf); rp.models.print_scores(scores), all_scores)
