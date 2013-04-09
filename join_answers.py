@@ -28,4 +28,8 @@ store = pd.HDFStore(
 
 store["train_w_answers"] = train_with_answers
 
+test = pd.read_csv(dio.data_dir, "data", "raw", "test.csv")
+
+store["test"] = test
+
 store.close()
