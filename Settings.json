@@ -1,0 +1,10 @@
+{
+	"data_path": "/home/mabu/kaggle/human-activity-smartphone",
+	"train_data_path": "data/processed/train_train.csv",
+	"valid_data_path": "data/processed/train_valid.csv",
+	"test_data_path": "data/processed/train_test.csv",
+	"submission_path": "submissions",
+	"prediction_dir" : "predictions",
+	"models_dir" : "models",
+	"cache_dir" : "tmp"
+}
