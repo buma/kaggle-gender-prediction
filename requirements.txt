@@ -7,7 +7,7 @@ pandas==0.10.1
 protobuf==2.5.0
 pytz==2012j
 -e git+git@github.com:buma/ramp.git@3dd92972ca804c314b51860a70a75dba4488b1a1#egg=ramp-dev
-requests==1.1.0
+requests==2.20.0
 scikit-learn==0.14-git
 scipy==0.11.0
 six==1.2.0
