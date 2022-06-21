@@ -2,7 +2,7 @@ Cython==0.17
 joblib==0.7.0d
 matplotlib==1.2.0
 numexpr==2.0.1
-numpy==1.7.0
+numpy==1.22.0
 pandas==0.10.1
 protobuf==2.5.0
 pytz==2012j
