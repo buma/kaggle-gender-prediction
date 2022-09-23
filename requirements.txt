@@ -4,7 +4,7 @@ matplotlib==1.2.0
 numexpr==2.0.1
 numpy==1.7.0
 pandas==0.10.1
-protobuf==2.5.0
+protobuf==3.18.3
 pytz==2012j
 -e git+git@github.com:buma/ramp.git@3dd92972ca804c314b51860a70a75dba4488b1a1#egg=ramp-dev
 requests==1.1.0
