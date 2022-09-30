@@ -1,5 +1,5 @@
 Cython==0.17
-joblib==0.7.0d
+joblib==1.2.0
 matplotlib==1.2.0
 numexpr==2.0.1
 numpy==1.7.0
